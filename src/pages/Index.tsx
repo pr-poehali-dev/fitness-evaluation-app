@@ -12,6 +12,9 @@ interface UserProfile {
   activity: string;
   goal: string;
   experience: string;
+  pushups: string;
+  squats30s: string;
+  plankTime: string;
 }
 
 interface MuscleGroup {
@@ -36,15 +39,43 @@ function getBodyType(profile: UserProfile) {
 }
 
 function getFitnessScore(profile: UserProfile): number {
-  let score = 50;
+  let score = 40;
   const age = parseInt(profile.age);
-  if (age < 25) score += 15;
-  else if (age < 35) score += 10;
-  else if (age < 45) score += 5;
-  if (profile.activity === "high") score += 20;
-  else if (profile.activity === "medium") score += 10;
-  if (profile.experience === "advanced") score += 15;
-  else if (profile.experience === "intermediate") score += 8;
+  if (age < 25) score += 10;
+  else if (age < 35) score += 7;
+  else if (age < 45) score += 4;
+  if (profile.activity === "high") score += 12;
+  else if (profile.activity === "medium") score += 6;
+  if (profile.experience === "advanced") score += 10;
+  else if (profile.experience === "intermediate") score += 5;
+
+  // Pushups score (up to +12)
+  const pushups = parseInt(profile.pushups);
+  if (!isNaN(pushups)) {
+    if (pushups >= 40) score += 12;
+    else if (pushups >= 25) score += 9;
+    else if (pushups >= 15) score += 6;
+    else if (pushups >= 5) score += 3;
+  }
+
+  // Squats 30s score (up to +10)
+  const squats = parseInt(profile.squats30s);
+  if (!isNaN(squats)) {
+    if (squats >= 30) score += 10;
+    else if (squats >= 22) score += 7;
+    else if (squats >= 15) score += 4;
+    else if (squats >= 8) score += 2;
+  }
+
+  // Plank time score (up to +10)
+  const plank = parseInt(profile.plankTime);
+  if (!isNaN(plank)) {
+    if (plank >= 120) score += 10;
+    else if (plank >= 60) score += 7;
+    else if (plank >= 30) score += 4;
+    else if (plank >= 15) score += 2;
+  }
+
   return Math.min(score, 98);
 }
 
@@ -55,17 +86,26 @@ function getMuscleGroups(profile: UserProfile): MuscleGroup[] {
   const seed = (profile.name.charCodeAt(0) || 65);
   const v = (s: number) => ((seed * s) % 20) - 10;
 
+  // Бонусы от физических тестов
+  const pushups = parseInt(profile.pushups) || 0;
+  const squats = parseInt(profile.squats30s) || 0;
+  const plank = parseInt(profile.plankTime) || 0;
+
+  const pushBonus = pushups >= 40 ? 15 : pushups >= 25 ? 10 : pushups >= 10 ? 5 : 0;
+  const squatBonus = squats >= 30 ? 15 : squats >= 20 ? 10 : squats >= 10 ? 5 : 0;
+  const plankBonus = plank >= 120 ? 15 : plank >= 60 ? 10 : plank >= 30 ? 5 : 0;
+
   const raw = [
-    { name: "Грудь",       level: base + v(3) + (isActive ? 10 : 0), tip: "Жим лёжа, разводки, отжимания" },
-    { name: "Спина",       level: base + v(7) + 5,                    tip: "Подтягивания, тяга штанги" },
-    { name: "Плечи",       level: base + v(11) - 5,                   tip: "Жим стоя, махи в стороны" },
-    { name: "Бицепс",      level: base + v(13),                       tip: "Подъём штанги, молотки" },
-    { name: "Трицепс",     level: base + v(17) - 8,                   tip: "Жим узким хватом, французский жим" },
-    { name: "Пресс",       level: base + v(19) - 15,                  tip: "Планка, скручивания, подъём ног" },
-    { name: "Ноги",        level: base + v(23) + (isActive ? 15 : 0), tip: "Приседания, выпады, жим ногами" },
-    { name: "Ягодицы",     level: base + v(29),                       tip: "Мертвая тяга, ягодичный мостик" },
-    { name: "Икры",        level: base + v(31) - 10,                  tip: "Подъёмы на носки, прыжки" },
-    { name: "Предплечья",  level: base + v(37) - 12,                  tip: "Хват, сгибания запястий" },
+    { name: "Грудь",       level: base + v(3) + (isActive ? 10 : 0) + Math.round(pushBonus * 0.8), tip: "Жим лёжа, разводки, отжимания" },
+    { name: "Спина",       level: base + v(7) + 5 + Math.round(plankBonus * 0.4),                   tip: "Подтягивания, тяга штанги" },
+    { name: "Плечи",       level: base + v(11) - 5 + Math.round(pushBonus * 0.5),                   tip: "Жим стоя, махи в стороны" },
+    { name: "Бицепс",      level: base + v(13),                                                      tip: "Подъём штанги, молотки" },
+    { name: "Трицепс",     level: base + v(17) - 8 + Math.round(pushBonus * 0.7),                   tip: "Жим узким хватом, французский жим" },
+    { name: "Пресс",       level: base + v(19) - 15 + plankBonus,                                   tip: "Планка, скручивания, подъём ног" },
+    { name: "Ноги",        level: base + v(23) + (isActive ? 15 : 0) + Math.round(squatBonus * 0.8), tip: "Приседания, выпады, жим ногами" },
+    { name: "Ягодицы",     level: base + v(29) + Math.round(squatBonus * 0.7),                      tip: "Мертвая тяга, ягодичный мостик" },
+    { name: "Икры",        level: base + v(31) - 10 + Math.round(squatBonus * 0.4),                 tip: "Подъёмы на носки, прыжки" },
+    { name: "Предплечья",  level: base + v(37) - 12 + Math.round(pushBonus * 0.3),                  tip: "Хват, сгибания запястий" },
   ];
 
   return raw.map(m => {
@@ -267,10 +307,12 @@ function ChoiceBtn({ active, onClick, label }: { active: boolean; onClick: () =>
 export default function Index() {
   const [tab, setTab] = useState<Tab>("profile");
   const [analyzed, setAnalyzed] = useState(false);
-  const [photoUploaded, setPhotoUploaded] = useState(false);
+  const [photoFront, setPhotoFront] = useState<string | null>(null);
+  const [photoSide, setPhotoSide] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile>({
     name: "", age: "", weight: "", height: "",
-    gender: "male", activity: "medium", goal: "mass", experience: "beginner"
+    gender: "male", activity: "medium", goal: "mass", experience: "beginner",
+    pushups: "", squats30s: "", plankTime: ""
   });
 
   const muscles = analyzed ? getMuscleGroups(profile) : [];
@@ -432,22 +474,119 @@ export default function Index() {
                   </div>
                 </div>
 
-                {/* Photo Upload */}
-                <div style={{ ...cardStyle, borderRadius: 16, padding: 20, marginTop: 12, border: `1px dashed ${photoUploaded ? "#FF6B00" : "#333"}` }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: 16, cursor: "pointer" }}>
-                    <input type="file" accept="image/*" style={{ display: "none" }} onChange={() => setPhotoUploaded(true)} />
-                    <div style={{ width: 48, height: 48, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", background: photoUploaded ? "rgba(255,107,0,0.15)" : "rgba(255,255,255,0.05)" }}>
-                      <Icon name={photoUploaded ? "CheckCircle" : "Camera"} size={22} style={{ color: photoUploaded ? "#FF6B00" : "rgba(255,255,255,0.25)" }} />
+                {/* Photo Upload - Front & Side */}
+                <div style={{ ...cardStyle, borderRadius: 16, padding: 20, marginTop: 12 }}>
+                  <p style={{ ...labelStyle, marginBottom: 16, fontSize: 13 }}>
+                    <Icon name="Camera" size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: 6, color: "#FF6B00" }} />
+                    Фото для анализа телосложения
+                  </p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    {/* Front photo */}
+                    <label style={{ cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: 16, borderRadius: 12, border: `1px dashed ${photoFront ? "#FF6B00" : "#333"}`, background: photoFront ? "rgba(255,107,0,0.05)" : "rgba(255,255,255,0.02)", transition: "all 0.3s", position: "relative", overflow: "hidden" }}>
+                      <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = ev => setPhotoFront(ev.target?.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                      }} />
+                      {photoFront ? (
+                        <img src={photoFront} alt="Фото спереди" style={{ width: "100%", height: 160, objectFit: "cover", borderRadius: 8 }} />
+                      ) : (
+                        <div style={{ width: "100%", height: 160, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                          <div style={{ width: 48, height: 48, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.05)" }}>
+                            <Icon name="User" size={24} style={{ color: "rgba(255,255,255,0.2)" }} />
+                          </div>
+                        </div>
+                      )}
+                      <div style={{ textAlign: "center" }}>
+                        <p style={{ fontFamily: "'Oswald', sans-serif", fontWeight: 600, fontSize: 13, color: photoFront ? "#FF6B00" : "rgba(255,255,255,0.45)" }}>
+                          {photoFront ? "Фото спереди ✓" : "Фото спереди"}
+                        </p>
+                        <p style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", fontFamily: "'Roboto', sans-serif", marginTop: 2 }}>
+                          Во весь рост
+                        </p>
+                      </div>
+                    </label>
+                    {/* Side photo */}
+                    <label style={{ cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: 16, borderRadius: 12, border: `1px dashed ${photoSide ? "#FF6B00" : "#333"}`, background: photoSide ? "rgba(255,107,0,0.05)" : "rgba(255,255,255,0.02)", transition: "all 0.3s", position: "relative", overflow: "hidden" }}>
+                      <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = ev => setPhotoSide(ev.target?.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                      }} />
+                      {photoSide ? (
+                        <img src={photoSide} alt="Фото сбоку" style={{ width: "100%", height: 160, objectFit: "cover", borderRadius: 8 }} />
+                      ) : (
+                        <div style={{ width: "100%", height: 160, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                          <div style={{ width: 48, height: 48, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.05)" }}>
+                            <Icon name="UserRound" size={24} style={{ color: "rgba(255,255,255,0.2)" }} />
+                          </div>
+                        </div>
+                      )}
+                      <div style={{ textAlign: "center" }}>
+                        <p style={{ fontFamily: "'Oswald', sans-serif", fontWeight: 600, fontSize: 13, color: photoSide ? "#FF6B00" : "rgba(255,255,255,0.45)" }}>
+                          {photoSide ? "Фото сбоку ✓" : "Фото сбоку"}
+                        </p>
+                        <p style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", fontFamily: "'Roboto', sans-serif", marginTop: 2 }}>
+                          Во весь рост
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Fitness Tests */}
+                <div style={{ ...cardStyle, borderRadius: 16, padding: 20, marginTop: 12 }}>
+                  <p style={{ ...labelStyle, marginBottom: 16, fontSize: 13 }}>
+                    <Icon name="Dumbbell" size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: 6, color: "#FF6B00" }} />
+                    Физические тесты
+                  </p>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+                    {/* Pushups */}
+                    <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: 16, border: "1px solid rgba(255,255,255,0.06)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,107,0,0.12)" }}>
+                          <span style={{ fontSize: 16 }}>💪</span>
+                        </div>
+                        <div>
+                          <p style={{ fontFamily: "'Oswald', sans-serif", fontWeight: 600, fontSize: 13, color: "rgba(255,255,255,0.7)" }}>Отжимания</p>
+                          <p style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "'Roboto', sans-serif" }}>До отказа</p>
+                        </div>
+                      </div>
+                      <input style={{ ...inputStyle, marginTop: 0 }} type="number" placeholder="Например: 25" value={profile.pushups} onChange={e => setProfile(p => ({ ...p, pushups: e.target.value }))} />
                     </div>
-                    <div>
-                      <p style={{ fontFamily: "'Oswald', sans-serif", fontWeight: 600, fontSize: 14, color: photoUploaded ? "#FF6B00" : "rgba(255,255,255,0.45)" }}>
-                        {photoUploaded ? "Фото загружено!" : "Загрузить фото (опционально)"}
-                      </p>
-                      <p style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", fontFamily: "'Roboto', sans-serif", marginTop: 2 }}>
-                        Для визуального анализа телосложения
-                      </p>
+                    {/* Squats 30s */}
+                    <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: 16, border: "1px solid rgba(255,255,255,0.06)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,215,0,0.12)" }}>
+                          <span style={{ fontSize: 16 }}>🦵</span>
+                        </div>
+                        <div>
+                          <p style={{ fontFamily: "'Oswald', sans-serif", fontWeight: 600, fontSize: 13, color: "rgba(255,255,255,0.7)" }}>Приседания</p>
+                          <p style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "'Roboto', sans-serif" }}>Макс. за 30 секунд</p>
+                        </div>
+                      </div>
+                      <input style={{ ...inputStyle, marginTop: 0 }} type="number" placeholder="Например: 20" value={profile.squats30s} onChange={e => setProfile(p => ({ ...p, squats30s: e.target.value }))} />
                     </div>
-                  </label>
+                    {/* Plank */}
+                    <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: 16, border: "1px solid rgba(255,255,255,0.06)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,45,85,0.12)" }}>
+                          <span style={{ fontSize: 16 }}>⏱️</span>
+                        </div>
+                        <div>
+                          <p style={{ fontFamily: "'Oswald', sans-serif", fontWeight: 600, fontSize: 13, color: "rgba(255,255,255,0.7)" }}>Планка</p>
+                          <p style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "'Roboto', sans-serif" }}>Время в секундах</p>
+                        </div>
+                      </div>
+                      <input style={{ ...inputStyle, marginTop: 0 }} type="number" placeholder="Например: 60" value={profile.plankTime} onChange={e => setProfile(p => ({ ...p, plankTime: e.target.value }))} />
+                    </div>
+                  </div>
                 </div>
 
                 <button
@@ -486,6 +625,33 @@ export default function Index() {
                   <StatCard label="Рост" value={`${profile.height} см`} icon="Ruler" />
                   <StatCard label="ИМТ" value={bmiVal} sub="Индекс массы тела" icon="BarChart2" color="#FFD700" />
                 </div>
+
+                {/* Photos display */}
+                {(photoFront || photoSide) && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
+                    {photoFront && (
+                      <div style={{ ...cardStyle, borderRadius: 16, padding: 12, textAlign: "center" }}>
+                        <img src={photoFront} alt="Фото спереди" style={{ width: "100%", height: 200, objectFit: "cover", borderRadius: 10, marginBottom: 8 }} />
+                        <p style={{ fontFamily: "'Oswald', sans-serif", fontSize: 12, color: "rgba(255,255,255,0.45)" }}>СПЕРЕДИ</p>
+                      </div>
+                    )}
+                    {photoSide && (
+                      <div style={{ ...cardStyle, borderRadius: 16, padding: 12, textAlign: "center" }}>
+                        <img src={photoSide} alt="Фото сбоку" style={{ width: "100%", height: 200, objectFit: "cover", borderRadius: 10, marginBottom: 8 }} />
+                        <p style={{ fontFamily: "'Oswald', sans-serif", fontSize: 12, color: "rgba(255,255,255,0.45)" }}>СБОКУ</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Fitness tests results */}
+                {(profile.pushups || profile.squats30s || profile.plankTime) && (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginTop: 12 }}>
+                    {profile.pushups && <StatCard label="Отжимания" value={`${profile.pushups} раз`} sub="До отказа" icon="Dumbbell" color="#FF6B00" />}
+                    {profile.squats30s && <StatCard label="Приседания" value={`${profile.squats30s} раз`} sub="За 30 секунд" icon="Zap" color="#FFD700" />}
+                    {profile.plankTime && <StatCard label="Планка" value={`${profile.plankTime} сек`} sub="Время удержания" icon="Timer" color="#FF2D55" />}
+                  </div>
+                )}
               </>
             )}
           </div>
